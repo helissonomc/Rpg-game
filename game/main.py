@@ -63,6 +63,7 @@ local_player = Player(pos_x=400, pos_y=300, name="")
 # Store positions of other players as Player objects
 other_players = {}
 
+fms = 60
 # WebSocket functions using threads
 def send_position(ws):
     """Send player's current position to the server."""
@@ -71,7 +72,7 @@ def send_position(ws):
             continue
         data = json.dumps({"name": local_player.name, "x": local_player.pos_x, "y": local_player.pos_y})
         ws.send(data)
-        time.sleep(0.1)  # Send data every 100 ms
+        time.sleep(1/fms)  # Send data every 100 ms
 
 def receive_positions(ws):
     """Receive positions of other players from the server."""
@@ -80,14 +81,14 @@ def receive_positions(ws):
         message = ws.recv()
         players_data = json.loads(message)
         for player_id, position in players_data.items():
-            if player_id != local_player.name:
-                if player_id not in other_players:
-                    # Create a new player if not already present
-                    other_players[player_id] = Player(pos_x=position["x"], pos_y=position["y"], name=player_id)
-                else:
-                    # Update the existing player's position
-                    other_players[player_id].pos_x = position["x"]
-                    other_players[player_id].pos_y = position["y"]
+
+            if player_id not in other_players:
+                # Create a new player if not already present
+                other_players[player_id] = Player(pos_x=position["x"], pos_y=position["y"], name=player_id)
+            else:
+                # Update the existing player's position
+                other_players[player_id].pos_x = position["x"]
+                other_players[player_id].pos_y = position["y"]
 
 def multiplayer_game():
     """Main multiplayer game loop with WebSocket using threads."""
@@ -115,9 +116,6 @@ def multiplayer_game():
         # Fill the screen with white to erase previous frames
         screen.fill(WHITE)
 
-        # Draw the local player
-        local_player.draw(screen, font)
-
         # Draw other players
         for player in other_players.values():
             player.draw(screen, font)
@@ -126,7 +124,7 @@ def multiplayer_game():
         pygame.display.flip()
 
         # Control the frame rate (60 frames per second)
-        clock.tick(120)
+        clock.tick(fms)
 
     pygame.quit()
 
