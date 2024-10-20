@@ -58,10 +58,10 @@ font = pygame.font.SysFont(None, 36)  # None uses default font, 36 is the size
 clock = pygame.time.Clock()
 
 # Create the local player instance
-local_player = Player(pos_x=400, pos_y=300, name="")
+local_player = Player(pos_x=400, pos_y=300, name="test")
 
-# Store positions of other players as Player objects
-other_players = {}
+# Store positions of all players as Player objects
+all_players = {"test": local_player}
 
 fms = 60
 # WebSocket functions using threads
@@ -76,19 +76,19 @@ def send_position(ws):
 
 def receive_positions(ws):
     """Receive positions of other players from the server."""
-    global other_players
+    global all_players
     while True:
         message = ws.recv()
         players_data = json.loads(message)
-        for player_id, position in players_data.items():
-
-            if player_id not in other_players:
+        for _, player_data in players_data.items():
+            name = player_data["name"]
+            if name not in all_players:
                 # Create a new player if not already present
-                other_players[player_id] = Player(pos_x=position["x"], pos_y=position["y"], name=player_id)
+                all_players[name] = Player(pos_x=player_data["x"], pos_y=player_data["y"], name=name)
             else:
                 # Update the existing player's position
-                other_players[player_id].pos_x = position["x"]
-                other_players[player_id].pos_y = position["y"]
+                all_players[name].pos_x = player_data["x"]
+                all_players[name].pos_y = player_data["y"]
 
 def multiplayer_game():
     """Main multiplayer game loop with WebSocket using threads."""
@@ -109,7 +109,6 @@ def multiplayer_game():
 
         # Get the current state of the arrow keys
         keys = pygame.key.get_pressed()
-
         # Move the local player based on key input
         local_player.move(keys)
 
@@ -117,9 +116,8 @@ def multiplayer_game():
         screen.fill(WHITE)
 
         # Draw other players
-        for player in other_players.values():
+        for player in all_players.values():
             player.draw(screen, font)
-
         # Update the display
         pygame.display.flip()
 
