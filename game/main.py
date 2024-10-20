@@ -125,7 +125,5 @@ def multiplayer_game():
         clock.tick(fms)
 
     pygame.quit()
-
 # Run the game loop
 multiplayer_game()
-
