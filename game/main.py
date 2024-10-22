@@ -26,25 +26,21 @@ class Player:
                 self.pos_x -= self.speed
             else:
                 self.pos_x -= self.pos_x
-                print(self.pos_x)
         if keys[pygame.K_RIGHT]:
             if self.pos_x + self.size + self.speed < screen_width:
                 self.pos_x += self.speed
             else:
                 self.pos_x = screen_width - self.size
-                print(self.pos_x)
         if keys[pygame.K_UP]:
             if self.pos_y > self.speed:
                 self.pos_y -= self.speed
             else:
                 self.pos_y -= self.pos_y
-                print(self.pos_y)
         if keys[pygame.K_DOWN]:
             if self.pos_y + self.size + self.speed < screen_height:
                 self.pos_y += self.speed
             else:
                 self.pos_y = screen_height - self.size
-                print(self.pos_y)
 
 
     def draw(self, screen, font):
