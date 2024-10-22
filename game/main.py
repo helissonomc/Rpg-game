@@ -22,22 +22,22 @@ class Player:
         global LAST_POSITION
         LAST_POSITION = self.pos_x, self.pos_y
         if keys[pygame.K_LEFT]:
-            if self.pos_x > self.speed:
+            if self.pos_x >= self.speed:
                 self.pos_x -= self.speed
             else:
                 self.pos_x = self.pos_x
         if keys[pygame.K_RIGHT]:
-            if self.pos_x <= screen_width - 60:
+            if self.pos_x <= screen_width - self.size:
                 self.pos_x += self.speed
             else:
                 self.pos_x = self.pos_x
         if keys[pygame.K_UP]:
-            if self.pos_y > self.speed:
+            if self.pos_y >= self.speed:
                 self.pos_y -= self.speed
             else:
                 self.pos_y = self.pos_y
         if keys[pygame.K_DOWN]:
-            if self.pos_y <= screen_height - 60:
+            if self.pos_y <= screen_height - self.size:
                 self.pos_y += self.speed
             else:
                 self.pos_y = self.pos_y
