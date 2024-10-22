@@ -22,13 +22,26 @@ class Player:
         global LAST_POSITION
         LAST_POSITION = self.pos_x, self.pos_y
         if keys[pygame.K_LEFT]:
-            self.pos_x -= self.speed
+            if self.pos_x > self.speed:
+                self.pos_x -= self.speed
+            else:
+                self.pos_x -= self.pos_x
         if keys[pygame.K_RIGHT]:
-            self.pos_x += self.speed
+            if self.pos_x + self.size + self.speed < screen_width:
+                self.pos_x += self.speed
+            else:
+                self.pos_x = screen_width - self.size
         if keys[pygame.K_UP]:
-            self.pos_y -= self.speed
+            if self.pos_y > self.speed:
+                self.pos_y -= self.speed
+            else:
+                self.pos_y -= self.pos_y
         if keys[pygame.K_DOWN]:
-            self.pos_y += self.speed
+            if self.pos_y + self.size + self.speed < screen_height:
+                self.pos_y += self.speed
+            else:
+                self.pos_y = screen_height - self.size
+
 
     def draw(self, screen, font):
         """Draw the player square and name on the screen."""
@@ -125,6 +138,5 @@ def multiplayer_game():
         clock.tick(fms)
 
     pygame.quit()
-
 # Run the game loop
 multiplayer_game()
