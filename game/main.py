@@ -22,13 +22,26 @@ class Player:
         global LAST_POSITION
         LAST_POSITION = self.pos_x, self.pos_y
         if keys[pygame.K_LEFT]:
-            self.pos_x -= self.speed
+            if self.pos_x > self.speed:
+                self.pos_x -= self.speed
+            else:
+                self.pos_x = self.pos_x
         if keys[pygame.K_RIGHT]:
-            self.pos_x += self.speed
+            if self.pos_x <= screen_width - 60:
+                self.pos_x += self.speed
+            else:
+                self.pos_x = self.pos_x
         if keys[pygame.K_UP]:
-            self.pos_y -= self.speed
+            if self.pos_y > self.speed:
+                self.pos_y -= self.speed
+            else:
+                self.pos_y = self.pos_y
         if keys[pygame.K_DOWN]:
-            self.pos_y += self.speed
+            if self.pos_y <= screen_height - 60:
+                self.pos_y += self.speed
+            else:
+                self.pos_y = self.pos_y
+
 
     def draw(self, screen, font):
         """Draw the player square and name on the screen."""
