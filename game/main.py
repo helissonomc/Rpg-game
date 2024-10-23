@@ -1,4 +1,5 @@
 import math
+import random
 import pygame
 import threading
 import websocket
@@ -8,6 +9,49 @@ import time
 
 _LOGGER = logging.getLogger(__name__)
 LAST_POSITION = (0, 0)
+
+
+
+particles = []
+# Initialize Pygame
+pygame.init()
+
+# Screen dimensions
+screen_width = 800
+screen_height = 600
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.set_caption('Multiplayer Square')
+
+# Colors (RGB)
+WHITE = (255, 255, 255)
+
+# Font settings
+font = pygame.font.SysFont(None, 36)  # None uses default font, 36 is the size
+
+# Clock to control the frame rate
+clock = pygame.time.Clock()
+
+
+fms = 60
+
+class Particle:
+    def __init__(self, position):
+        self.position = position
+        self.size = random.randint(4, 8)
+        self.color = (0, 0, 0)
+        self.lifetime = fms / 3  # frames
+        self.velocity = [random.uniform(-1, 1), random.uniform(2, 5)]
+
+    def update(self):
+        self.lifetime -= 1
+        self.position[0] = self.position[0] + self.velocity[0] * random.uniform(-1, 1)
+        self.position[1] = self.position[1] + self.velocity[1] * random.uniform(-1, 0)
+
+    def draw(self, surface):
+        # Draw the particle as a rectangle (pixel-like effect)
+        pygame.draw.rect(surface, self.color, (*self.position, self.size, self.size))
+
+
 # Define the Player class
 class Player:
     def __init__(self, pos_x: float, pos_y: float, name: str):
@@ -21,6 +65,9 @@ class Player:
     def move(self, keys):
         """Handle player movement based on arrow key input."""
         global LAST_POSITION
+        if LAST_POSITION != (self.pos_x, self.pos_y):
+            particles.append(Particle([self.pos_x+self.size/2, self.pos_y+self.size]))
+
         LAST_POSITION = self.pos_x, self.pos_y
         if keys[pygame.K_LEFT]:
             if self.pos_x > self.speed:
@@ -63,32 +110,14 @@ class Player:
 
         pygame.draw.line(screen, (0, 0, 0), player_center, (end_x, end_y), 2)
 
-# Initialize Pygame
-pygame.init()
-
-# Screen dimensions
-screen_width = 800
-screen_height = 600
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption('Multiplayer Square')
-
-# Colors (RGB)
-WHITE = (255, 255, 255)
-
-# Font settings
-font = pygame.font.SysFont(None, 36)  # None uses default font, 36 is the size
-
-# Clock to control the frame rate
-clock = pygame.time.Clock()
 
 # Create the local player instance
-player_name = "test2"
+player_name = "test"
 local_player = Player(pos_x=400, pos_y=300, name=player_name)
 
 # Store positions of all players as Player objects
 all_players = {player_name: local_player}
 
-fms = 60
 # WebSocket functions using threads
 def send_position(ws):
     """Send player's current position to the server."""
@@ -120,7 +149,6 @@ def multiplayer_game():
     uri = "ws://localhost:8765"
     ws = websocket.WebSocket()
     ws.connect(uri)
-
     # Start threads for sending and receiving positions
     threading.Thread(target=send_position, args=(ws,), daemon=True).start()
     threading.Thread(target=receive_positions, args=(ws,), daemon=True).start()
@@ -135,6 +163,7 @@ def multiplayer_game():
         # Get the current state of the arrow keys
         keys = pygame.key.get_pressed()
         # Move the local player based on key input
+
         local_player.move(keys)
 
         # Fill the screen with white to erase previous frames
@@ -143,6 +172,12 @@ def multiplayer_game():
         # Draw other players
         for player in all_players.values():
             player.draw(screen, font)
+
+        for particle in particles[:]:
+            particle.update()
+            particle.draw(screen)
+            if particle.lifetime <= 0:
+                particles.remove(particle)
         # Update the display
         pygame.display.flip()
 
