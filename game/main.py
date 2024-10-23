@@ -1,3 +1,4 @@
+import math
 import pygame
 import threading
 import websocket
@@ -42,6 +43,9 @@ class Player:
             else:
                 self.pos_y = screen_height - self.size
 
+    @property
+    def center(self):
+        return (self.pos_x + self.size/2), (self.pos_y + self.size/2),
 
     def draw(self, screen, font):
         """Draw the player square and name on the screen."""
@@ -51,6 +55,13 @@ class Player:
         text_surface = font.render(self.name, True, (0, 0, 0))  # Black text
         screen.blit(text_surface, (self.pos_x + self.size + 10, self.pos_y))  # Display name next to the square
 
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        player_center = self.center
+        angle = math.atan2(mouse_y - player_center[1], mouse_x - player_center[0])
+        end_x = player_center[0] + self.size * 2 * math.cos(angle)
+        end_y = player_center[1] + self.size * 2 * math.sin(angle)
+
+        pygame.draw.line(screen, (0, 0, 0), player_center, (end_x, end_y), 2)
 
 # Initialize Pygame
 pygame.init()
