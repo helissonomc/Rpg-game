@@ -71,10 +71,11 @@ font = pygame.font.SysFont(None, 36)  # None uses default font, 36 is the size
 clock = pygame.time.Clock()
 
 # Create the local player instance
-local_player = Player(pos_x=400, pos_y=300, name="test")
+player_name = "test2"
+local_player = Player(pos_x=400, pos_y=300, name=player_name)
 
 # Store positions of all players as Player objects
-all_players = {"test": local_player}
+all_players = {player_name: local_player}
 
 fms = 60
 # WebSocket functions using threads
