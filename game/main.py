@@ -217,7 +217,6 @@ def receive_player_positions(ws):
     while True:
         message = ws.recv()
         players_data = json.loads(message)
-        print(players_data)
         for player_data in players_data.values():
             name = player_data["name"]
             if name not in all_players:
