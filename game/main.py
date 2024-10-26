@@ -199,8 +199,6 @@ class Player(pygame.sprite.Sprite):
         """Draw the player square and name on the screen."""
         if TOGGLE_HITBOX:
             pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 1)
-            print(self.shadow_rect)
-            pygame.draw.rect(screen, (255, 0, 0), self.shadow_rect, 4)
 
         self._draw_shadow(screen)
         screen.blit(self.player_image, self.player_rect)
