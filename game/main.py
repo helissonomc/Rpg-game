@@ -66,6 +66,7 @@ class Particle:
         screen.blit(self.surface, (self.position[0], self.position[1]))
 
 
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, x: float, y: float, name: str):
         super().__init__()
@@ -127,26 +128,41 @@ class Player(pygame.sprite.Sprite):
     def move(self, keys):
         """Handle player movement based on arrow key input."""
         pos_x, pos_y = self.pos_x, self.pos_y
-        speed = self.speed * NORMALIZER
+        speed = self.speed
+
+        # Direction flags
+        dx, dy = 0, 0
+
+        # Horizontal movement
         if keys[pygame.K_LEFT]:
             self.is_facing_left = True
             self.is_walking_left = self.hitbox.x > speed
-            pos_x -= speed if self.is_walking_left else self.hitbox.x
+            dx = -1 if self.is_walking_left else 0
         elif keys[pygame.K_RIGHT]:
             self.is_facing_left = False
             self.is_walking_right = (self.hitbox.x + self.hitbox.width + speed < SCREEN_WIDTH)
-            pos_x += speed if self.is_walking_right else SCREEN_WIDTH - (self.hitbox.x + self.hitbox.width)
+            dx = 1 if self.is_walking_right else 0
         else:
             self.is_walking_left = self.is_walking_right = False
 
+        # Vertical movement
         if keys[pygame.K_UP]:
             self.is_walking_up = self.hitbox.y > speed
-            pos_y -= speed if self.is_walking_up else self.hitbox.y
+            dy = -1 if self.is_walking_up else 0
         elif keys[pygame.K_DOWN]:
             self.is_walking_down = (self.hitbox.y + self.hitbox.height + speed < SCREEN_HEIGHT)
-            pos_y += speed if self.is_walking_down else SCREEN_HEIGHT - (self.hitbox.y + self.hitbox.height)
+            dy = 1 if self.is_walking_down else 0
         else:
             self.is_walking_up = self.is_walking_down = False
+
+        # Normalize diagonal movement
+        if dx != 0 and dy != 0:  # Diagonal movement
+            dx *= math.sqrt(0.5)
+            dy *= math.sqrt(0.5)
+
+        # Update position based on normalized movement
+        pos_x += dx * speed
+        pos_y += dy * speed
 
         self.update_position(pos_x, pos_y)
 
