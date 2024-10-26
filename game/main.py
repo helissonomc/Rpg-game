@@ -73,7 +73,7 @@ class Player(pygame.sprite.Sprite):
         self.pos_y = y
         self.name = name
         self.color = (255, 0, 0)  # Default color red
-        self.speed = 2.2
+        self.speed = 4
 
         self.particles = []
         self.last_position = (0, 0, 0)
@@ -121,23 +121,24 @@ class Player(pygame.sprite.Sprite):
     def move(self, keys):
         """Handle player movement based on arrow key input."""
         pos_x, pos_y = self.pos_x, self.pos_y
+        speed = self.speed * NORMALIZER
         if keys[pygame.K_LEFT]:
             self.is_facing_left = True
-            self.is_walking_left = self.hitbox.x > self.speed
-            pos_x -= self.speed if self.is_walking_left else self.hitbox.x
+            self.is_walking_left = self.hitbox.x > speed
+            pos_x -= speed if self.is_walking_left else self.hitbox.x
         elif keys[pygame.K_RIGHT]:
             self.is_facing_left = False
-            self.is_walking_right = (self.hitbox.x + self.hitbox.width + self.speed < SCREEN_WIDTH)
-            pos_x += self.speed if self.is_walking_right else SCREEN_WIDTH - (self.hitbox.x + self.hitbox.width)
+            self.is_walking_right = (self.hitbox.x + self.hitbox.width + speed < SCREEN_WIDTH)
+            pos_x += speed if self.is_walking_right else SCREEN_WIDTH - (self.hitbox.x + self.hitbox.width)
         else:
             self.is_walking_left = self.is_walking_right = False
 
         if keys[pygame.K_UP]:
-            self.is_walking_up = self.hitbox.y > self.speed
-            pos_y -= self.speed if self.is_walking_up else self.hitbox.y
+            self.is_walking_up = self.hitbox.y > speed
+            pos_y -= speed if self.is_walking_up else self.hitbox.y
         elif keys[pygame.K_DOWN]:
-            self.is_walking_down = (self.hitbox.y + self.hitbox.height + self.speed < SCREEN_HEIGHT)
-            pos_y += self.speed if self.is_walking_down else SCREEN_HEIGHT - (self.hitbox.y + self.hitbox.height)
+            self.is_walking_down = (self.hitbox.y + self.hitbox.height + speed < SCREEN_HEIGHT)
+            pos_y += speed if self.is_walking_down else SCREEN_HEIGHT - (self.hitbox.y + self.hitbox.height)
         else:
             self.is_walking_up = self.is_walking_down = False
 
@@ -183,7 +184,6 @@ class Player(pygame.sprite.Sprite):
 
         self.sword_image = sprites_sword[int(self.current_sword_sprite)]
         player_image = sprites[int(self.current_player_sprite)]
-
         if self.is_facing_left:
             self.player_image = pygame.transform.flip(player_image, True, False).convert_alpha()
         else:
@@ -197,8 +197,7 @@ class Player(pygame.sprite.Sprite):
         screen.blit(self.player_image, self.player_rect)
         text_surface = font.render(self.name, True, BLACK)  # Black text
         screen.blit(text_surface, (self.pos_x + self.hitbox.width + 10, self.pos_y))
-        if self == local_player:
-            self._draw_weapon_range(screen)
+        self._draw_weapon_range(screen)
 
     def _draw_weapon_range(self, screen):
         """Draw the weapon range line from the player's center to the mouse cursor."""
@@ -206,12 +205,16 @@ class Player(pygame.sprite.Sprite):
         mouse_offset = mouse_pos - self.sword_pivot
         mouse_angle = -math.degrees(math.atan2(mouse_offset.y, mouse_offset.x)) - 90
 
+        if self != local_player:
+            mouse_angle = 90
         pos = self.sword_pivot + (4, -self.sword_rect.height//2)
 
         image, rect = rotate_on_pivot(self.sword_image, mouse_angle, self.sword_pivot, pos)
         if TOGGLE_HITBOX:
             pygame.draw.rect(screen, (255, 0, 0), rect, 1)
         screen.blit(image, rect)
+
+    def _draw_shadow(sel, scree): pass
 
 
 def rotate_on_pivot(image, angle, pivot, origin):
@@ -258,9 +261,13 @@ def receive_player_positions(ws):
             if name not in all_players:
                 all_players[name] = Player(x=player_data["x"], y=player_data["y"], name=name)
             else:
-                if all_players[name].last_position != (player_data["x"], player_data["y"]):
+                is_player_walking = all_players[name].last_position != (player_data["x"], player_data["y"])
+                if is_player_walking:
                     all_players[name].last_time_walking = pygame.time.get_ticks()
-                    all_players[name].is_facing_left = player_data["x"] < all_players[name].last_position[0]
+                    if player_data["y"] == all_players[name].last_position[1]:
+                        all_players[name].is_facing_left = (
+                            (player_data["x"] < all_players[name].last_position[0])
+                        )
 
                 all_players[name].update_position(player_data["x"], player_data["y"])
 
