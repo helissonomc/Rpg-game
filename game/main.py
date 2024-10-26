@@ -34,18 +34,24 @@ CAN_SPAWN_PARTICLE = None
 pygame.time.set_timer(SPAWN_RECT_EVENT, 17)  # milliseconds
 
 # Ssprite
-sprite_sheet_image = pygame.image.load('doux.png').convert_alpha()
-sprite_sheet = spritesheet.SpriteSheet(sprite_sheet_image)
+sprite_sheet_image_player = pygame.image.load('sprites/doux.png').convert_alpha()
+sprite_sheet_player = spritesheet.SpriteSheet(sprite_sheet_image_player)
+
+sprites_sword = []
+for i in range(1, 7):
+    image = pygame.image.load(f'sprites/Sprite-000{i}.png').convert_alpha()
+    sprites_sword.append(image)
 
 
 class Particle:
     def __init__(self, position):
         self.position = position
-        self.size = random.randint(4, 8)
-        self.color = BLACK
+        self.size = random.randint(2, 4)
+        self.color = (119, 64, 1)
         self.lifetime = 20  # frames
         self.velocity = [random.uniform(-1, 1), random.uniform(2, 5)]
         self.surface = pygame.Surface((self.size, self.size))
+        self.surface.fill(self.color)
         self.fadeout_alpha = 255
         self.fadeout_rate = 900 / FRAMES_PER_SECOND
 
@@ -67,75 +73,73 @@ class Player(pygame.sprite.Sprite):
         self.pos_y = y
         self.name = name
         self.color = (255, 0, 0)  # Default color red
-        self.speed = 5
+        self.speed = 4
 
         self.particles = []
-        self.last_position = None
+        self.last_position = (0, 0, 0)
 
         self.sprites_stopped = []
-        self.sprites_stopped.append((sprite_sheet.get_image(0, 24, 24, 3, BLACK)))
-        self.sprites_stopped.append((sprite_sheet.get_image(1, 24, 24, 3, BLACK)))
-        self.sprites_stopped.append((sprite_sheet.get_image(2, 24, 24, 3, BLACK)))
-        self.sprites_stopped.append((sprite_sheet.get_image(3, 24, 24, 3, BLACK)))
+        self.sprites_stopped.append((sprite_sheet_player.get_image(0, 24, 24, 3, BLACK)))
+        self.sprites_stopped.append((sprite_sheet_player.get_image(1, 24, 24, 3, BLACK)))
+        self.sprites_stopped.append((sprite_sheet_player.get_image(2, 24, 24, 3, BLACK)))
+        self.sprites_stopped.append((sprite_sheet_player.get_image(3, 24, 24, 3, BLACK)))
 
         self.sprites_walking = []
-        self.sprites_walking.append((sprite_sheet.get_image(6, 24, 24, 3, BLACK)))
-        self.sprites_walking.append((sprite_sheet.get_image(7, 24, 24, 3, BLACK)))
-        self.sprites_walking.append((sprite_sheet.get_image(8, 24, 24, 3, BLACK)))
-        self.sprites_walking.append((sprite_sheet.get_image(9, 24, 24, 3, BLACK)))
+        self.sprites_walking.append((sprite_sheet_player.get_image(6, 24, 24, 3, BLACK)))
+        self.sprites_walking.append((sprite_sheet_player.get_image(7, 24, 24, 3, BLACK)))
+        self.sprites_walking.append((sprite_sheet_player.get_image(8, 24, 24, 3, BLACK)))
+        self.sprites_walking.append((sprite_sheet_player.get_image(9, 24, 24, 3, BLACK)))
 
-        self.current_sprite = 0
-        self.image = self.sprites_stopped[self.current_sprite]
-        self.rect = self.image.get_rect()
-        self.hitbox = self.image.get_bounding_rect(min_alpha=1)
+        self.current_player_sprite = 0
+        self.current_sword_sprite = 0
+        self.player_image = self.sprites_stopped[self.current_player_sprite]
+        self.sword_image = sprites_sword[self.current_sword_sprite]
+        self.sword_rect = self.sword_image.get_rect()
+        self.player_rect = self.player_image.get_rect()
+
+        self.hitbox = self.player_image.get_bounding_rect(min_alpha=1)
+
         self.weapon_range = self.hitbox.height * 1.05
-        self.rect.topleft = [self.pos_x, self.pos_y]
+        self.player_rect.topleft = [self.pos_x, self.pos_y]
+
+        self.sword_pivot = pygame.Vector2(self.hitbox.x + self.hitbox.width // 2, self.hitbox.y + self.hitbox.height // 2)
 
         self.is_walking_right = False
         self.is_walking_left = False
-
+        self.is_walking_up = False
+        self.is_walking_down = False
+        self.is_facing_left = False
         ## Other player
         self.last_time_walking = 0
 
     @property
     def hitbox_position(self):
-        x_readjustiment = (self.rect.width - self.hitbox.width) // 2
-        y_readjustiment = (self.rect.height - self.hitbox.height) // 2
+        x_readjustiment = (self.player_rect.width - self.hitbox.width) // 2
+        y_readjustiment = (self.player_rect.height - self.hitbox.height) // 2
         return [self.pos_x + x_readjustiment, self.pos_y + y_readjustiment + 1]
 
     def move(self, keys):
         """Handle player movement based on arrow key input."""
         pos_x, pos_y = self.pos_x, self.pos_y
         if keys[pygame.K_LEFT]:
-            if self.hitbox.x > self.speed:
-                self.is_walking_left = True
-                pos_x = self.pos_x - self.speed
-            elif self.hitbox.x > 0:
-                self.is_walking_left = False
-                pos_x = self.pos_x - self.hitbox.x
+            self.is_facing_left = True
+            self.is_walking_left = self.hitbox.x > self.speed
+            pos_x -= self.speed if self.is_walking_left else self.hitbox.x
+        elif keys[pygame.K_RIGHT]:
+            self.is_facing_left = False
+            self.is_walking_right = (self.hitbox.x + self.hitbox.width + self.speed < SCREEN_WIDTH)
+            pos_x += self.speed if self.is_walking_right else SCREEN_WIDTH - (self.hitbox.x + self.hitbox.width)
         else:
-            self.is_walking_left = False
-
-        if keys[pygame.K_RIGHT]:
-            if self.hitbox.x + self.hitbox.width + self.speed < SCREEN_WIDTH:
-                self.is_walking_right = True
-                pos_x = self.pos_x + self.speed
-            elif self.hitbox.x + self.hitbox.width < SCREEN_WIDTH:
-                self.is_walking_right = False
-                pos_x = self.pos_x + SCREEN_WIDTH - (self.hitbox.x + self.hitbox.width)
-        else:
-            self.is_walking_right = False
+            self.is_walking_left = self.is_walking_right = False
 
         if keys[pygame.K_UP]:
-            if self.hitbox.y > self.speed:
-                pos_y = self.pos_y - self.speed
-            elif self.hitbox.y > 0:
-                pos_y = self.pos_y - self.hitbox.y
-        if keys[pygame.K_DOWN]:
-            if self.hitbox.y + self.hitbox.height + self.speed < SCREEN_HEIGHT:
-                pos_y = self.pos_y + self.speed
-            elif self.hitbox.y + self.hitbox.height < SCREEN_HEIGHT:
-                pos_y = self.pos_y + SCREEN_HEIGHT - (self.hitbox.y + self.hitbox.height)
+            self.is_walking_up = self.hitbox.y > self.speed
+            pos_y -= self.speed if self.is_walking_up else self.hitbox.y
+        elif keys[pygame.K_DOWN]:
+            self.is_walking_down = (self.hitbox.y + self.hitbox.height + self.speed < SCREEN_HEIGHT)
+            pos_y += self.speed if self.is_walking_down else SCREEN_HEIGHT - (self.hitbox.y + self.hitbox.height)
+        else:
+            self.is_walking_up = self.is_walking_down = False
 
         self.update_position(pos_x, pos_y)
 
@@ -149,29 +153,48 @@ class Player(pygame.sprite.Sprite):
             self.particles.append(Particle([self.hitbox.x + self.hitbox.width / 2, self.hitbox.y + self.hitbox.height]))
 
         self.pos_x, self.pos_y = pos_x, pos_y
-        self.rect.topleft = [self.pos_x, self.pos_y]
+        self.player_rect.topleft = [self.pos_x, self.pos_y]
         self.hitbox.topleft = self.hitbox_position
+        self.sword_pivot[0] = self.hitbox.x + self.hitbox.width // 2
+        self.sword_pivot[1] = self.hitbox.y + self.hitbox.height // 2
 
     @property
     def center(self):
         return (self.hitbox.x + self.hitbox.width / 2, self.hitbox.y + self.hitbox.height / 1.5)
 
     def update_sprite(self):
-        self.current_sprite += 10 / FRAMES_PER_SECOND
+        self.current_player_sprite += 10 / FRAMES_PER_SECOND
+        self.current_sword_sprite += 10 / FRAMES_PER_SECOND
+
         sprites = self.sprites_stopped
-        if self.is_walking_left or self.is_walking_right or (self != local_player and pygame.time.get_ticks() - self.last_time_walking < 100):
+        if (
+            self.is_walking_down or
+            self.is_walking_up or
+            self.is_walking_left or
+            self.is_walking_right or
+            (self != local_player and pygame.time.get_ticks() - self.last_time_walking < 100)
+        ):
             sprites = self.sprites_walking
 
-        if self.current_sprite >= len(sprites):
-            self.current_sprite = 0
-        self.image = sprites[int(self.current_sprite)]
+        if self.current_player_sprite >= len(sprites):
+            self.current_player_sprite = 0
+        if self.current_sword_sprite >= len(sprites_sword):
+            self.current_sword_sprite = 0
+
+        self.sword_image = sprites_sword[int(self.current_sword_sprite)]
+        player_image = sprites[int(self.current_player_sprite)]
+
+        if self.is_facing_left:
+            self.player_image = pygame.transform.flip(player_image, True, False).convert_alpha()
+        else:
+            self.player_image = player_image
 
     def draw(self, screen):
         """Draw the player square and name on the screen."""
         if TOGGLE_HITBOX:
             pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 1)
-        screen.blit(self.image, self.rect)
 
+        screen.blit(self.player_image, self.player_rect)
         text_surface = font.render(self.name, True, BLACK)  # Black text
         screen.blit(text_surface, (self.pos_x + self.hitbox.width + 10, self.pos_y))
         if self == local_player:
@@ -179,13 +202,26 @@ class Player(pygame.sprite.Sprite):
 
     def _draw_weapon_range(self, screen):
         """Draw the weapon range line from the player's center to the mouse cursor."""
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        player_center = self.center
-        angle = math.atan2(mouse_y - player_center[1], mouse_x - player_center[0])
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_offset = mouse_pos - self.sword_pivot
+        mouse_angle = -math.degrees(math.atan2(mouse_offset.y, mouse_offset.x)) - 90
 
-        end_x = player_center[0] + self.weapon_range * math.cos(angle)
-        end_y = player_center[1] + self.weapon_range * math.sin(angle)
-        pygame.draw.line(screen, BLACK, player_center, (end_x, end_y), 2)
+        pos = self.sword_pivot + (0, -self.sword_rect.height//2)
+
+        image, rect = rotate_on_pivot(self.sword_image, mouse_angle, self.sword_pivot, pos)
+        if TOGGLE_HITBOX:
+            pygame.draw.rect(screen, (255, 0, 0), rect, 1)
+        screen.blit(image, rect)
+
+
+def rotate_on_pivot(image, angle, pivot, origin):
+
+    surf = pygame.transform.rotate(image, angle)
+
+    offset = pivot + (origin - pivot).rotate(-angle)
+    rect = surf.get_rect(center=offset)
+
+    return surf, rect
 
 
 # Create the local player instance
@@ -224,6 +260,7 @@ def receive_player_positions(ws):
             else:
                 if all_players[name].last_position != (player_data["x"], player_data["y"]):
                     all_players[name].last_time_walking = pygame.time.get_ticks()
+                    all_players[name].is_facing_left = player_data["x"] < all_players[name].last_position[0]
 
                 all_players[name].update_position(player_data["x"], player_data["y"])
 
@@ -233,7 +270,13 @@ def start_multiplayer_game():
     uri = "ws://localhost:8765"
     ws = websocket.WebSocket()
     ws.connect(uri)
-
+    ws.send(
+        json.dumps({
+            "name": local_player.name,
+            "x": local_player.pos_x,
+            "y": local_player.pos_y
+        })
+    )
     # Start threads for sending and receiving positions
     threading.Thread(target=send_player_position, args=(ws,), daemon=True).start()
     threading.Thread(target=receive_player_positions, args=(ws,), daemon=True).start()
