@@ -104,6 +104,12 @@ class Player(pygame.sprite.Sprite):
 
         self.sword_pivot = pygame.Vector2(self.hitbox.x + self.hitbox.width // 2, self.hitbox.y + self.hitbox.height // 2)
 
+        # Shadow
+        self.shadow_surface = pygame.Surface((self.hitbox.width, self.hitbox.height // 2), pygame.SRCALPHA)
+        self.shadow_color = (50, 50, 50, 120)
+
+        pygame.draw.ellipse(self.shadow_surface, self.shadow_color, self.shadow_surface.get_rect())
+
         self.is_walking_right = False
         self.is_walking_left = False
         self.is_walking_up = False
@@ -193,11 +199,15 @@ class Player(pygame.sprite.Sprite):
         """Draw the player square and name on the screen."""
         if TOGGLE_HITBOX:
             pygame.draw.rect(screen, (255, 0, 0), self.hitbox, 1)
+            print(self.shadow_rect)
+            pygame.draw.rect(screen, (255, 0, 0), self.shadow_rect, 4)
 
+        self._draw_shadow(screen)
         screen.blit(self.player_image, self.player_rect)
         text_surface = font.render(self.name, True, BLACK)  # Black text
         screen.blit(text_surface, (self.pos_x + self.hitbox.width + 10, self.pos_y))
         self._draw_weapon_range(screen)
+
 
     def _draw_weapon_range(self, screen):
         """Draw the weapon range line from the player's center to the mouse cursor."""
@@ -214,8 +224,8 @@ class Player(pygame.sprite.Sprite):
             pygame.draw.rect(screen, (255, 0, 0), rect, 1)
         screen.blit(image, rect)
 
-    def _draw_shadow(sel, scree): pass
-
+    def _draw_shadow(self, screen):
+        screen.blit(self.shadow_surface, (self.hitbox.x, self.hitbox.y + self.hitbox.height - self.shadow_surface.height // 2))
 
 def rotate_on_pivot(image, angle, pivot, origin):
 
