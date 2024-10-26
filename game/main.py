@@ -73,7 +73,7 @@ class Player(pygame.sprite.Sprite):
         self.pos_y = y
         self.name = name
         self.color = (255, 0, 0)  # Default color red
-        self.speed = 4
+        self.speed = 2.2
 
         self.particles = []
         self.last_position = (0, 0, 0)
@@ -94,8 +94,8 @@ class Player(pygame.sprite.Sprite):
         self.current_sword_sprite = 0
         self.player_image = self.sprites_stopped[self.current_player_sprite]
         self.sword_image = sprites_sword[self.current_sword_sprite]
-        self.sword_rect = self.sword_image.get_rect()
-        self.player_rect = self.player_image.get_rect()
+        self.sword_rect = self.sword_image.get_frect()
+        self.player_rect = self.player_image.get_frect()
 
         self.hitbox = self.player_image.get_bounding_rect(min_alpha=1)
 
@@ -206,7 +206,7 @@ class Player(pygame.sprite.Sprite):
         mouse_offset = mouse_pos - self.sword_pivot
         mouse_angle = -math.degrees(math.atan2(mouse_offset.y, mouse_offset.x)) - 90
 
-        pos = self.sword_pivot + (0, -self.sword_rect.height//2)
+        pos = self.sword_pivot + (4, -self.sword_rect.height//2)
 
         image, rect = rotate_on_pivot(self.sword_image, mouse_angle, self.sword_pivot, pos)
         if TOGGLE_HITBOX:
