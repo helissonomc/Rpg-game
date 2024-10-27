@@ -69,7 +69,6 @@ class Particle:
         screen.blit(self.surface, (self.position[0], self.position[1]))
 
 
-
 class Player(pygame.sprite.Sprite):
     def __init__(self, x: float, y: float, name: str):
         super().__init__()
@@ -77,7 +76,7 @@ class Player(pygame.sprite.Sprite):
         self.pos_y = y
         self.name = name
         self.color = (255, 0, 0)  # Default color red
-        self.speed = 4
+        self.speed_x = self.speed_y = 4
 
         self.particles = []
         self.last_position = (0, 0, 0)
@@ -102,7 +101,7 @@ class Player(pygame.sprite.Sprite):
         self.player_rect = self.player_image.get_frect()
 
         self.hitbox = self.player_image.get_bounding_rect(min_alpha=1)
-
+        self.hitbox.width -= 10
         self.weapon_range = self.hitbox.height * 1.05
         self.player_rect.topleft = [self.pos_x, self.pos_y]
 
@@ -112,7 +111,7 @@ class Player(pygame.sprite.Sprite):
         self.shadow_surface = pygame.Surface((self.hitbox.width, self.hitbox.height // 2), pygame.SRCALPHA)
         self.shadow_color = (50, 50, 50, 120)
 
-        pygame.draw.ellipse(self.shadow_surface, self.shadow_color, self.shadow_surface.get_rect())
+        pygame.draw.ellipse(self.shadow_surface, self.shadow_color, self.shadow_surface.get_frect())
 
         self.is_walking_right = False
         self.is_walking_left = False
@@ -131,41 +130,38 @@ class Player(pygame.sprite.Sprite):
     def move(self, keys):
         """Handle player movement based on arrow key input."""
         pos_x, pos_y = self.pos_x, self.pos_y
-        speed = self.speed
-
-        # Direction flags
-        dx, dy = 0, 0
+        speed_x, speed_y = 0, 0
 
         # Horizontal movement
         if keys[pygame.K_LEFT]:
             self.is_facing_left = True
-            self.is_walking_left = self.hitbox.x > speed
-            dx = -1 if self.is_walking_left else 0
+            speed_x = -min(self.speed_x, self.hitbox.x)
+            self.is_walking_left = bool(speed_x)
         elif keys[pygame.K_RIGHT]:
             self.is_facing_left = False
-            self.is_walking_right = (self.hitbox.x + self.hitbox.width + speed < SCREEN_WIDTH)
-            dx = 1 if self.is_walking_right else 0
+            speed_x = min(self.speed_x, SCREEN_WIDTH - (self.hitbox.x + self.hitbox.width))
+            self.is_walking_right = bool(speed_x)
         else:
             self.is_walking_left = self.is_walking_right = False
 
         # Vertical movement
         if keys[pygame.K_UP]:
-            self.is_walking_up = self.hitbox.y > speed
-            dy = -1 if self.is_walking_up else 0
+            speed_y = -min(self.speed_y, self.hitbox.y)
+            self.is_walking_up = bool(speed_y)
         elif keys[pygame.K_DOWN]:
-            self.is_walking_down = (self.hitbox.y + self.hitbox.height + speed < SCREEN_HEIGHT)
-            dy = 1 if self.is_walking_down else 0
+            speed_y = min(self.speed_y, SCREEN_HEIGHT - (self.hitbox.y + self.hitbox.height))
+            self.is_walking_down = bool(speed_y)
         else:
             self.is_walking_up = self.is_walking_down = False
 
         # Normalize diagonal movement
-        if dx != 0 and dy != 0:  # Diagonal movement
-            dx *= math.sqrt(0.5)
-            dy *= math.sqrt(0.5)
+        if speed_x != 0 and speed_y != 0:
+            speed_x *= math.sqrt(0.5)
+            speed_y *= math.sqrt(0.5)
 
-        # Update position based on normalized movement
-        pos_x += dx * speed
-        pos_y += dy * speed
+        # Update position based on movement
+        pos_x += speed_x
+        pos_y += speed_y
 
         self.update_position(pos_x, pos_y)
 
@@ -249,7 +245,7 @@ def rotate_on_pivot(image, angle, pivot, origin):
     surf = pygame.transform.rotate(image, angle)
 
     offset = pivot + (origin - pivot).rotate(-angle)
-    rect = surf.get_rect(center=offset)
+    rect = surf.get_frect(center=offset)
 
     return surf, rect
 
