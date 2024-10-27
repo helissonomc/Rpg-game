@@ -6,17 +6,26 @@ import json
 connected_clients = set()
 
 # Store player data (player_id: position)
-players = {}
+all_players = {}
+
+class EventsEnum:
+    player_moved = "player_moved"
+    player_disconneted = "player_disconnected" 
 
 async def handle_client(websocket, path):
-    global players
+    global all_players
     player_id = websocket.remote_address[1]  # Using the port number as a unique player ID
     connected_clients.add(websocket)
     try:
         async for message in websocket:
             data = json.loads(message)
             # Update player position
-            players[player_id] = {"x": data["x"], "y": data["y"], "name": data["name"]}
+            all_players[player_id] = {
+                "x": data["x"],
+                "y": data["y"],
+                "name": data["name"],
+                "type": data["type"],
+            }
 
             # Broadcast all players' positions to all connected clients
             await broadcast_positions()
@@ -24,13 +33,14 @@ async def handle_client(websocket, path):
         print(f"Client {player_id} disconnected")
     finally:
         # Remove player on disconnect
-        del players[player_id]
+        all_players[player_id]["type"] = EventsEnum.player_disconneted
         connected_clients.remove(websocket)
         await broadcast_positions()
+        del all_players[player_id]
 
 async def broadcast_positions():
-    if players:
-        message = json.dumps(players)
+    if all_players:
+        message = json.dumps(all_players)
         # Send the message to all connected clients
         if connected_clients:  # Only broadcast if there are clients
             await asyncio.gather(*[client.send(message) for client in connected_clients])
