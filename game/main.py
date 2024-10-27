@@ -42,6 +42,9 @@ for i in range(1, 7):
     image = pygame.image.load(f'sprites/Sprite-000{i}.png').convert_alpha()
     sprites_sword.append(image)
 
+class EventsEnum:
+    player_moved = "player_moved"
+    player_disconneted = "player_disconnected" 
 
 class Particle:
     def __init__(self, position):
@@ -269,7 +272,8 @@ def send_player_position(ws):
             data = json.dumps({
                 "name": local_player.name,
                 "x": local_player.pos_x,
-                "y": local_player.pos_y
+                "y": local_player.pos_y,
+                "type" : EventsEnum.player_moved
             })
             ws.send(data)
 
@@ -282,9 +286,10 @@ def receive_player_positions(ws):
         players_data = json.loads(message)
         for player_data in players_data.values():
             name = player_data["name"]
-            if name not in all_players:
+            
+            if name not in all_players: #se o jogador se conectou
                 all_players[name] = Player(x=player_data["x"], y=player_data["y"], name=name)
-            else:
+            elif player_data["type"] == EventsEnum.player_moved:
                 is_player_walking = all_players[name].last_position != (player_data["x"], player_data["y"])
                 if is_player_walking:
                     all_players[name].last_time_walking = pygame.time.get_ticks()
@@ -292,9 +297,9 @@ def receive_player_positions(ws):
                         all_players[name].is_facing_left = (
                             (player_data["x"] < all_players[name].last_position[0])
                         )
-
                 all_players[name].update_position(player_data["x"], player_data["y"])
-
+            elif player_data["type"] == EventsEnum.player_disconneted:
+                del all_players[name]
 
 def start_multiplayer_game():
     """Main multiplayer game loop with WebSocket using threads."""
@@ -303,6 +308,7 @@ def start_multiplayer_game():
     ws.connect(uri)
     ws.send(
         json.dumps({
+            "type": EventsEnum.player_moved,
             "name": local_player.name,
             "x": local_player.pos_x,
             "y": local_player.pos_y
