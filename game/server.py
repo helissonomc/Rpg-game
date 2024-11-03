@@ -19,7 +19,6 @@ async def handle_client(websocket, path):
     try:
         async for message in websocket:
             data = json.loads(message)
-            print(data)
             # Update player position
             all_players[player_id] = {
                 "name": data["name"],
