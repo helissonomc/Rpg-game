@@ -44,7 +44,8 @@ for i in range(1, 7):
 
 class EventsEnum:
     player_moved = "player_moved"
-    player_disconneted = "player_disconnected" 
+    player_disconneted = "player_disconnected"
+    player_weapon_angle = "player_weapon_angle"
 
 class Particle:
     def __init__(self, position):
@@ -71,16 +72,17 @@ class Particle:
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x: float, y: float, name: str):
+    def __init__(self, x: float, y: float, name: str, weapon_ang = 180):
         super().__init__()
         self.pos_x = x
         self.pos_y = y
         self.name = name
         self.color = (255, 0, 0)  # Default color red
         self.speed = 4
-
+        self.weapon_ang = weapon_ang 
         self.particles = []
-        self.last_position = (0, 0, 0)
+        self.last_position = (x, y)
+        self.last_weapon_ang = weapon_ang
 
         self.sprites_stopped = []
         self.sprites_stopped.append((sprite_sheet_player.get_image(0, 24, 24, 3, BLACK)))
@@ -225,15 +227,17 @@ class Player(pygame.sprite.Sprite):
         screen.blit(text_surface, (self.pos_x + self.hitbox.width + 10, self.pos_y))
         self._draw_weapon_range(screen)
 
-
     def _draw_weapon_range(self, screen):
         """Draw the weapon range line from the player's center to the mouse cursor."""
-        mouse_pos = pygame.mouse.get_pos()
-        mouse_offset = mouse_pos - self.sword_pivot
-        mouse_angle = -math.degrees(math.atan2(mouse_offset.y, mouse_offset.x)) - 90
-
         if self != local_player:
-            mouse_angle = 90
+            mouse_angle = self.weapon_ang
+        else:
+            mouse_pos = pygame.mouse.get_pos()
+            mouse_offset = mouse_pos - self.sword_pivot
+            mouse_angle = -math.degrees(math.atan2(mouse_offset.y, mouse_offset.x)) - 90
+        self.last_weapon_ang = self.weapon_ang
+        self.weapon_ang = mouse_angle
+        
         pos = self.sword_pivot + (4, -self.sword_rect.height//2)
 
         image, rect = rotate_on_pivot(self.sword_image, mouse_angle, self.sword_pivot, pos)
@@ -268,15 +272,15 @@ def send_player_position(ws):
     """Send player's current position to the server."""
     while True:
         time.sleep(1 / FRAMES_PER_SECOND)
-        if local_player.last_position != (local_player.pos_x, local_player.pos_y):
+        if (local_player.last_position != (local_player.pos_x, local_player.pos_y) or local_player.last_weapon_ang != local_player.weapon_ang):
             data = json.dumps({
                 "name": local_player.name,
                 "x": local_player.pos_x,
                 "y": local_player.pos_y,
+                "weapon_ang": local_player.weapon_ang,
                 "type" : EventsEnum.player_moved
             })
             ws.send(data)
-
 
 def receive_player_positions(ws):
     """Receive positions of other players from the server."""
@@ -288,16 +292,19 @@ def receive_player_positions(ws):
             name = player_data["name"]
             
             if name not in all_players: #se o jogador se conectou
-                all_players[name] = Player(x=player_data["x"], y=player_data["y"], name=name)
+                all_players[name] = Player(x=player_data["x"], y=player_data["y"], name=name, weapon_ang=player_data["weapon_ang"])
             elif player_data["type"] == EventsEnum.player_moved:
                 is_player_walking = all_players[name].last_position != (player_data["x"], player_data["y"])
+                is_player_swing_weapon = all_players[name].last_weapon_ang != player_data["weapon_ang"]
                 if is_player_walking:
                     all_players[name].last_time_walking = pygame.time.get_ticks()
                     if player_data["y"] == all_players[name].last_position[1]:
                         all_players[name].is_facing_left = (
                             (player_data["x"] < all_players[name].last_position[0])
                         )
-                all_players[name].update_position(player_data["x"], player_data["y"])
+                    all_players[name].update_position(player_data["x"], player_data["y"])
+                if is_player_swing_weapon:
+                    all_players[name].weapon_ang = player_data["weapon_ang"]
             elif player_data["type"] == EventsEnum.player_disconneted:
                 del all_players[name]
 
@@ -308,10 +315,11 @@ def start_multiplayer_game():
     ws.connect(uri)
     ws.send(
         json.dumps({
-            "type": EventsEnum.player_moved,
             "name": local_player.name,
             "x": local_player.pos_x,
-            "y": local_player.pos_y
+            "y": local_player.pos_y,
+            "weapon_ang": local_player.weapon_ang,
+            "type": EventsEnum.player_moved,
         })
     )
     # Start threads for sending and receiving positions
