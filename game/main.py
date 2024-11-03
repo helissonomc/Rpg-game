@@ -139,11 +139,11 @@ class Player(pygame.sprite.Sprite):
         dx, dy = 0, 0
 
         # Horizontal movement
-        if keys[pygame.K_LEFT]:
+        if keys[pygame.K_a]:
             self.is_facing_left = True
             self.is_walking_left = self.hitbox.x > speed
             dx = -1 if self.is_walking_left else 0
-        elif keys[pygame.K_RIGHT]:
+        elif keys[pygame.K_d]:
             self.is_facing_left = False
             self.is_walking_right = (self.hitbox.x + self.hitbox.width + speed < SCREEN_WIDTH)
             dx = 1 if self.is_walking_right else 0
@@ -151,10 +151,10 @@ class Player(pygame.sprite.Sprite):
             self.is_walking_left = self.is_walking_right = False
 
         # Vertical movement
-        if keys[pygame.K_UP]:
+        if keys[pygame.K_w]:
             self.is_walking_up = self.hitbox.y > speed
             dy = -1 if self.is_walking_up else 0
-        elif keys[pygame.K_DOWN]:
+        elif keys[pygame.K_s]:
             self.is_walking_down = (self.hitbox.y + self.hitbox.height + speed < SCREEN_HEIGHT)
             dy = 1 if self.is_walking_down else 0
         else:
