@@ -10,7 +10,7 @@ all_players = {}
 
 class EventsEnum:
     player_moved = "player_moved"
-    player_disconneted = "player_disconnected" 
+    player_disconneted = "player_disconnected"
 
 async def handle_client(websocket, path):
     global all_players
@@ -46,7 +46,8 @@ async def broadcast_positions():
             await asyncio.gather(*[client.send(message) for client in connected_clients])
 
 async def main():
-    async with websockets.serve(handle_client, "localhost", 8765):
+    print("Server initialized on port 8765")
+    async with websockets.serve(handle_client, "0.0.0.0", 8765):
         await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
